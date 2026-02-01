@@ -3,33 +3,26 @@ package internal
 import (
 	"context"
 	"fmt"
+	"github.com/m1-elmasry/conccurrent-stream-orchestrator/internal/metrics"
 	"math/rand"
 	"time"
 )
 
 func ProcessChunk(chunk DataChunk) int {
-	// simulate 20-50ms API Call. simulate "an external processing engine"
 	time.Sleep(time.Duration(20+rand.Intn(30)) * time.Millisecond)
 	return len(chunk.Data)
 }
 
-func Worker(ctx context.Context, id int, dataChan <-chan DataChunk) {
+func Worker(ctx context.Context, id int, dataChan <-chan DataChunk, m *metrics.Metrics) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case chunk := <-dataChan:
-
-			// fmt.Printf("Worker %d received chunk %d from stream %d for processing\n", id, chunk.ID, chunk.StreamID)
-
-			// Measure latency and process the chunk
-
-			result := MeasureLatency(chunk, func() int {
+			result := metrics.MeasureLatency(chunk.CreatedAt, m, func() int {
 				return ProcessChunk(chunk)
 			})
-
-			// Log the processed chunk
-			fmt.Printf("Worker %d processed chunk %d from stream %d, Length of chunk's data %d\n", id, chunk.ID, chunk.StreamID, result)
+			fmt.Printf("Worker %d processed chunk %d from stream %d, length of chunk's data is %d\n", id, chunk.ID, chunk.StreamID, result)
 		}
 	}
 }

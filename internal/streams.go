@@ -3,11 +3,11 @@ package internal
 import (
 	"context"
 	cryptoRand "crypto/rand"
-	// "fmt"
 	mathRand "math/rand"
 	"time"
 
-	"m1-elmasry/conccurrent-stream-orchestrator/internal/config"
+	"github.com/m1-elmasry/conccurrent-stream-orchestrator/internal/config"
+	"github.com/m1-elmasry/conccurrent-stream-orchestrator/internal/metrics"
 )
 
 type DataChunk struct {
@@ -17,38 +17,34 @@ type DataChunk struct {
 	CreatedAt time.Time
 }
 
-func generateRandomBytes(numberOfBytes int) []byte {
-	randomSize := mathRand.Intn(numberOfBytes + 1)
+func generateRandomBytes(numberOfBytes int, rng *mathRand.Rand) []byte {
+	randomSize := rng.Intn(numberOfBytes + 1)
 	b := make([]byte, randomSize)
 	cryptoRand.Read(b)
 	return b
 }
 
-func Stream(ctx context.Context, id int, dataChan chan<- DataChunk) {
+func Stream(ctx context.Context, id int, dataChan chan<- DataChunk, m *metrics.Metrics, cfg *config.Configuration) {
 	chunkID := 0
-	// to avoid race conditions in random number generation
 	rng := mathRand.New(mathRand.NewSource(time.Now().UnixNano() + int64(id)))
 	for {
-		// Simulate data generation
 		chunk := DataChunk{
 			ID:        chunkID,
 			StreamID:  id,
-			Data:      generateRandomBytes(config.CHUNK_SIZE),
+			Data:      generateRandomBytes(cfg.ChunkSize, rng),
 			CreatedAt: time.Now(),
 		}
-		// fmt.Printf("Stream %d generated chunk %d\n", id, chunkID)
 
 		select {
 		case <-ctx.Done():
 			return
 		case dataChan <- chunk:
-			// fmt.Printf("chunk %d from stream %d sent Successfully\n", chunkID, id)
+			// success
 		default:
-			// fmt.Printf("chunk %d from stream %d dropped due to channel being full\n", chunkID, id)
+			m.RecordDropped()
 		}
 		chunkID++
-		// Simulate variable interval between data chunks
-		randomInterval := rng.Intn(config.STREAM_INTERVAL + 1)
+		randomInterval := rng.Intn(cfg.StreamInterval + 1)
 		time.Sleep(time.Duration(randomInterval) * time.Millisecond)
 	}
 }

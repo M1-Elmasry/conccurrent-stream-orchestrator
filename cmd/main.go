@@ -3,56 +3,73 @@ package main
 import (
 	"context"
 	"fmt"
-	"m1-elmasry/conccurrent-stream-orchestrator/internal"
-	"m1-elmasry/conccurrent-stream-orchestrator/internal/config"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/m1-elmasry/conccurrent-stream-orchestrator/internal"
+	"github.com/m1-elmasry/conccurrent-stream-orchestrator/internal/config"
+	"github.com/m1-elmasry/conccurrent-stream-orchestrator/internal/metrics"
 )
 
 func main() {
 	fmt.Println("Starting the application...")
 
+	// Load configuration from environment variables
+	cfg := config.LoadConfig()
+	cfg.PrintConfig()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	fmt.Println("Application is running...")
 
-	// communication channel for streams data
-	dataChan := make(chan internal.DataChunk, config.BUFFER_SIZE)
-
+	m := metrics.New()
+	dataChan := make(chan internal.DataChunk, cfg.BufferSize)
 	wg := sync.WaitGroup{}
 
-	// start the streams and workers
-	for workerID := range config.WORKERS_COUNT {
+	// start workers
+	for workerID := range cfg.WorkersCount {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			internal.Worker(ctx, id, dataChan)
+			internal.Worker(ctx, id, dataChan, m)
 		}(workerID)
 	}
 
-	fmt.Printf("%d workers started\n", config.WORKERS_COUNT)
+	fmt.Printf("%d workers started\n", cfg.WorkersCount)
 
-	for streamID := range config.STREAMS_COUNT {
+	// start streams
+	for streamID := range cfg.StreamsCount {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			internal.Stream(ctx, id, dataChan)
+			internal.Stream(ctx, id, dataChan, m, cfg)
 		}(streamID)
 	}
 
-	fmt.Printf("%d streams started\n", config.STREAMS_COUNT)
+	fmt.Printf("%d streams started\n", cfg.StreamsCount)
 
-	// signal handling and graceful shutdown logic would go here
+	// wait for shutdown signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	<-sigChan
-	fmt.Println("Shutdown signal received, gracefully shutting down...")
+	fmt.Println("\nShutdown signal received...")
 
 	cancel()
 	wg.Wait()
 
-	fmt.Println("Application has exited.")
+	// print final stats
+	fmt.Println("\n=== Final Statistics ===")
+	stats := m.Summary()
+	fmt.Printf("Processed: %d chunks\n", stats["processed"])
+	fmt.Printf("Dropped: %d chunks\n", stats["dropped"])
+	fmt.Printf("Elapsed: %v\n", stats["elapsed"])
+	fmt.Printf("Throughput: %.2f chunks/sec\n", stats["throughput"])
+	fmt.Printf("Avg Latency: %v\n", stats["avg_latency"])
+	fmt.Printf("P50 Latency: %v\n", stats["p50"])
+	fmt.Printf("P95 Latency: %v\n", stats["p95"])
+	fmt.Printf("P99 Latency: %v\n", stats["p99"])
+	fmt.Println("Application exited.")
 }
