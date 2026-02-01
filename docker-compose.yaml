@@ -1,0 +1,43 @@
+services:
+  stream-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: concurrent-stream-orchestrator
+    image: concurrent-stream-orchestrator:latest
+    
+    # Environment variables (override defaults from Dockerfile)
+    environment:
+      WORKERS_COUNT: "50"
+      STREAMS_COUNT: "100"
+      STREAM_INTERVAL: "1000"
+      CHUNK_SIZE: "1024"
+      BUFFER_SIZE: "500"
+    
+    # Alternatively, load from .env file:
+    # env_file:
+    #   - .env
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+        reservations:
+          cpus: '1'
+          memory: 256M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Keep container running
+    stdin_open: true
+    tty: true
