@@ -116,12 +116,6 @@ Run with Docker Compose for easier management:
 # Start the application (with defaults)
 docker-compose up
 
-# Run in detached mode
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
 # Stop the application
 docker-compose down
 ```
