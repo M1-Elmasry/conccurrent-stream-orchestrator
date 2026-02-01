@@ -115,7 +115,13 @@ Run with Docker Compose for easier management:
 ```bash
 # Start the application (with defaults)
 docker-compose up
+```
 
+```bash
+# Press Ctrl+C in the terminal
+```
+
+```bash
 # Stop the application
 docker-compose down
 ```
