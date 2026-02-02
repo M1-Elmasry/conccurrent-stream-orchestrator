@@ -84,7 +84,29 @@ conccurrent-stream-orchestrator/
 
 ### Quick Start - Docker
 
-#### Option A: Docker Run
+#### Option A: Docker Compose (Recommended)
+
+Run with Docker Compose for easier management:
+
+look on the expected output section below 
+
+```bash
+# Start the application (with defaults, do not run in detached mode)
+docker-compose up
+```
+
+for graceful shutdown 
+
+```bash
+# Press Ctrl+C in the terminal
+```
+
+```bash
+# Stop the application
+docker-compose down
+```
+
+#### Option B: Docker Run
 
 Build and run using Docker directly:
 
@@ -108,23 +130,7 @@ docker run --rm -it \
   concurrent-stream-orchestrator:latest
 ```
 
-#### Option B: Docker Compose (Recommended)
 
-Run with Docker Compose for easier management:
-
-```bash
-# Start the application (with defaults)
-docker-compose up
-```
-
-```bash
-# Press Ctrl+C in the terminal
-```
-
-```bash
-# Stop the application
-docker-compose down
-```
 
 ### Environment Variables
 
